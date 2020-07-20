@@ -22,7 +22,7 @@ def process_splitter(processes, cores):
     for i in range(1, length-1):
         x += distribution[i]
         split_positions[i] = x
-    dist_idxes = np.array_split(X, np.array(split_positions, dtype="int"))
+    dist_idxes = np.array_split(x, np.array(split_positions, dtype="int"))
     return dist_idxes
     
 def data_splitter(data, cores):
@@ -49,8 +49,18 @@ def dot(A,B):
     ###pure single core func
     return sum(A[i]*B[i] for i in range(len(A)))
 
+
+
 if __name__ == "__main__":
     
+    def unit_test_single_core():
+        start = time.time()
+        length = int(1e7)
+        y = np.linspace(0,1, length)
+        sum_r = dot(y,y)
+        print("sum r = ",sum_r)
+        print("total time = ",time.time()-start)
+        
     def unit_test_p2p():
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
@@ -96,25 +106,27 @@ if __name__ == "__main__":
         rank = comm.Get_rank()
         size = comm.Get_size()
                 
-        y=None
-        r=None
-        length=None
+        y=0
+        r=0
         if rank==0:
-            length = 100000
-            y = np.linspace(0,1, length)
             start = time.time()
+            length = int(1e7)
+            y = np.linspace(0,1, length)
+            y = data_splitter(y, size)
+            print("data length = ",len(y))
         y = comm.bcast(y, root=0)
-        length = comm.bcast(length, root=0)
-        if rank!=0:
-            s_local = time.time()
-            r = 0
-            for i in range(20):
-                r += rank*(dot(y,y))
-            print(rank, r, time.time()-s_local)
+#        if rank!=0:
+        s_local = time.time()
+        r = dot(y[rank-1],y[rank-1])
+        print(rank, r, time.time()-s_local)
         r = comm.gather(r, root=0)
         
         if rank == 0:
-            print("r = ",r)
-            print(time.time()-start)
-        
+            print("r = ",r, sum(r), len(r))
+            print("total time = ",time.time()-start)
+    
+    '''
+    main actually starts here
+    '''
     unit_test_collective_comm()
+#    unit_test_single_core()
