@@ -107,7 +107,7 @@ if __name__ == "__main__":
         size = comm.Get_size()
                 
         y=0
-        r=0
+#        r=0
         if rank==0:
             start = time.time()
             length = int(1e7)
